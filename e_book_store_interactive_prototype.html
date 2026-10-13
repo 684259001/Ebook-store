@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Book Store Interactive Prototype (SRS & OOAD Simulator)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    h1, h2, h3, h4, h5, h6, .font-prompt { font-family: 'Prompt', sans-serif; }
+    .no-select { -webkit-user-select: none; user-select: none; }
+    /* Dynamic Watermark Pattern */
+    .watermark-overlay {
+      background-image: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.04) 100px, transparent 100px, transparent 200px);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- TOP ROLE SWITCHER BANNER -->
+  <div class="bg-slate-900 text-slate-200 text-xs py-2 px-4 flex flex-wrap justify-between items-center border-b border-slate-800">
+    <div class="flex items-center space-x-2 my-1">
+      <span class="bg-indigo-600 text-white font-semibold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase">SRS Prototype</span>
+      <span class="text-slate-400">ระบบร้านขายหนังสืออิเล็กทรอนิกส์ E-Book Store v1.1</span>
+    </div>
+    <div class="flex items-center space-x-3 my-1">
+      <span class="text-slate-400 font-prompt">สลับมุมมองผู้ใช้ (Role Simulator):</span>
+      <div class="inline-flex rounded-md shadow-sm bg-slate-800 p-0.5" role="group">
+        <button id="role-customer-btn" onclick="switchRole('customer')" class="px-3 py-1 text-xs font-medium rounded text-white bg-indigo-600 transition">
+          <i class="fa-solid fa-user-tag mr-1"></i> Customer (ลูกค้า)
+        </button>
+        <button id="role-writer-btn" onclick="switchRole('writer')" class="px-3 py-1 text-xs font-medium rounded text-slate-300 hover:text-white transition">
+          <i class="fa-solid fa-pen-nib mr-1"></i> Writer (นักเขียน)
+        </button>
+        <button id="role-admin-btn" onclick="switchRole('admin')" class="px-3 py-1 text-xs font-medium rounded text-slate-300 hover:text-white transition">
+          <i class="fa-solid fa-user-gear mr-1"></i> Shop Owner (เจ้าของร้าน)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP NAVBAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('store')">
+          <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-200">
+            <i class="fa-solid fa-book-open text-xl"></i>
+          </div>
+          <div>
+            <span class="font-prompt font-bold text-xl tracking-tight text-slate-900 block leading-none">E-Book Store</span>
+            <span class="text-[11px] text-indigo-600 font-medium">Digital Library & Reader</span>
+          </div>
+        </div>
+
+        <!-- Navigation Links (Dynamic by Role) -->
+        <nav id="nav-links" class="hidden md:flex space-x-6 text-sm font-medium">
+          <!-- Will be rendered dynamically based on active role -->
+        </nav>
+
+        <!-- Search & Cart Action Buttons -->
+        <div class="flex items-center space-x-3">
+          <div id="search-box-container" class="relative hidden sm:block w-48 md:w-64">
+            <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="ค้นหาชื่อหนังสือ, นักเขียน..." class="w-full bg-slate-100 text-xs pl-9 pr-3 py-2 rounded-lg border border-transparent focus:border-indigo-500 focus:bg-white focus:outline-none transition">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          </div>
+
+          <!-- Bookshelf Button (Customer Only) -->
+          <button id="nav-bookshelf-btn" onclick="switchTab('bookshelf')" class="relative p-2 text-slate-600 hover:text-indigo-600 transition" title="ตู้หนังสือของฉัน">
+            <i class="fa-solid fa-book-bookmark text-lg"></i>
+            <span class="hidden md:inline text-xs font-prompt font-medium ml-1">ตู้หนังสือ</span>
+            <span id="bookshelf-count-badge" class="hidden absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+          </button>
+
+          <!-- Cart Button (Customer Only) -->
+          <button id="nav-cart-btn" onclick="toggleCartModal(true)" class="relative p-2 text-slate-600 hover:text-indigo-600 transition" title="ตะกร้าสินค้า">
+            <i class="fa-solid fa-cart-shopping text-lg"></i>
+            <span id="cart-count-badge" class="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+          </button>
+
+          <!-- User Profile Avatar -->
+          <div class="flex items-center space-x-2 pl-2 border-l border-slate-200">
+            <div id="user-avatar" class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+              CU
+            </div>
+            <div class="hidden lg:block text-left">
+              <div id="user-name-display" class="text-xs font-bold font-prompt text-slate-800 leading-tight">ลูกค้าทั่วไป</div>
+              <div id="user-role-display" class="text-[10px] text-slate-500">Customer</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ROLE 1: CUSTOMER VIEW -->
+    <div id="view-customer" class="space-y-6">
+      
+      <!-- STORE TAB -->
+      <div id="customer-tab-store" class="space-y-6">
+        
+        <!-- Hero Banner Promo -->
+        <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+          <div class="relative z-10 max-w-xl space-y-3">
+            <span class="bg-indigo-500/30 text-indigo-200 text-xs px-3 py-1 rounded-full border border-indigo-400/30 font-medium">
+              <i class="fa-solid fa-sparkles text-amber-300 mr-1"></i> Pre-Order & Special Discounts
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-bold font-prompt leading-tight">คลังหนังสืออิเล็กทรอนิกส์ครบวงจร อ่านได้ทุกที่ทุกเวลา</h1>
+            <p class="text-slate-300 text-sm leading-relaxed">รองรับการทดลองอ่านฟรี (Preview), ป้องกันลิขสิทธิ์ความปลอดภัยด้วย DRM และรับสิทธิ์จองหนังสือล่วงหน้าก่อนใคร</p>
+            <div class="pt-2 flex flex-wrap gap-2">
+              <button onclick="filterCategory('all')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-prompt text-xs font-medium px-4 py-2 rounded-lg transition shadow-md shadow-indigo-900/50">
+                เลือกชมหนังสือทั้งหมด
+              </button>
+              <button onclick="filterCategory('preorder')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-prompt text-xs font-bold px-4 py-2 rounded-lg transition shadow-md shadow-amber-900/30">
+                <i class="fa-solid fa-clock mr-1"></i> รายการ Pre-Order
+              </button>
+            </div>
+          </div>
+          <div class="mt-6 md:mt-0 relative z-10 flex items-center justify-center space-x-3">
+            <div class="w-28 h-40 bg-slate-800 rounded-lg shadow-2xl border border-slate-700 overflow-hidden transform -rotate-6 hover:rotate-0 transition duration-300">
+              <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+            </div>
+            <div class="w-32 h-44 bg-slate-800 rounded-lg shadow-2xl border border-slate-700 overflow-hidden transform rotate-3 hover:rotate-0 transition duration-300 z-10">
+              <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Categories Bar -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-slate-500 font-prompt mr-1">หมวดหมู่:</span>
+            <button onclick="filterCategory('all')" class="cat-filter-btn active bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition">ทั้งหมด</button>
+            <button onclick="filterCategory('นิยาย')" class="cat-filter-btn bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition">นิยาย / วรรณกรรม</button>
+            <button onclick="filterCategory('พัฒนาตัวเอง')" class="cat-filter-btn bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition">พัฒนาตัวเอง</button>
+            <button onclick="filterCategory('เทคโนโลยี')" class="cat-filter-btn bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition">เทคโนโลยี / ไอที</button>
+            <button onclick="filterCategory('การเงิน')" class="cat-filter-btn bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition">การเงิน / การลงทุน</button>
+          </div>
+          <div class="text-xs text-slate-500 font-prompt">
+            พบหนังสือ <span id="book-count" class="font-bold text-indigo-600">0</span> เล่ม
+          </div>
+        </div>
+
+        <!-- Book Grid -->
+        <div id="book-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+          <!-- Dynamically populated -->
+        </div>
+
+      </div>
+
+      <!-- BOOKSHELF TAB -->
+      <div id="customer-tab-bookshelf" class="hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+            <div>
+              <h2 class="text-2xl font-bold font-prompt text-slate-900">ตู้หนังสือส่วนตัว (My Bookshelf)</h2>
+              <p class="text-xs text-slate-500 mt-1">คลังหนังสือ E-Book และรายการ Pre-Order ที่ครอบครองพร้อมอ่าน</p>
+            </div>
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1.5 rounded-lg border border-emerald-200">
+              <i class="fa-solid fa-shield-halved mr-1"></i> DRM Protected Access
+            </span>
+          </div>
+
+          <div id="bookshelf-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ROLE 2: WRITER VIEW -->
+    <div id="view-writer" class="hidden space-y-6">
+      
+      <!-- Writer Header Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-book"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 font-prompt">หนังสือของฉัน</div>
+            <div id="writer-stat-books" class="text-xl font-bold font-prompt text-slate-900">0 เล่ม</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-cart-flatbed"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 font-prompt">ยอดขายรวม</div>
+            <div id="writer-stat-sales" class="text-xl font-bold font-prompt text-slate-900">0 เล่ม</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 font-prompt">ส่วนแบ่งรายได้สะสม (70%)</div>
+            <div id="writer-stat-royalty" class="text-xl font-bold font-prompt text-slate-900">฿0.00</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 font-prompt">ยอดคงเหลือถอนได้</div>
+            <div id="writer-stat-withdrawable" class="text-xl font-bold font-prompt text-slate-900">฿0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Writer Actions Tabs / Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: Book Upload & Management -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <!-- Upload New E-Book Card -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
+              <h3 class="text-lg font-bold font-prompt text-slate-900 flex items-center">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-600 mr-2"></i> อัปโหลดผลงาน E-Book ใหม่ (FR-01, FR-03, FR-07)
+              </h3>
+              <span class="text-xs text-slate-400">รองรับ PDF, EPUB</span>
+            </div>
+
+            <form id="upload-book-form" onsubmit="handleUploadBook(event)" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">ชื่อหนังสือ *</label>
+                  <input type="text" id="upload-title" required placeholder="เช่น คู่มือ OOAD ฉบับใช้งานจริง" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">หมวดหมู่ *</label>
+                  <select id="upload-category" required class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <option value="เทคโนโลยี">เทคโนโลยี / ไอที</option>
+                    <option value="พัฒนาตัวเอง">พัฒนาตัวเอง</option>
+                    <option value="นิยาย">นิยาย / วรรณกรรม</option>
+                    <option value="การเงิน">การเงิน / การลงทุน</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">ราคาตั้งขาย (บาท) *</label>
+                  <input type="number" id="upload-price" min="0" step="1" required placeholder="250" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">หน้าทดลองอ่านฟรี (Preview) *</label>
+                  <input type="number" id="upload-preview-pages" min="1" max="50" value="5" required class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">แนบไฟล์หนังสือ (.pdf / .epub) *</label>
+                  <input type="file" id="upload-file" accept=".pdf,.epub" required class="w-full text-xs p-1.5 rounded-lg border border-slate-300 bg-slate-50 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Pre-Order Option -->
+              <div class="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="upload-is-preorder" onchange="togglePreOrderFields(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                    <label for="upload-is-preorder" class="text-xs font-bold font-prompt text-amber-900 cursor-pointer">เปิดระบบสั่งจองล่วงหน้า (Pre-Order FR-07)</label>
+                  </div>
+                  <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-medium">ฟีเจอร์เพิ่มยอดขาย</span>
+                </div>
+                
+                <div id="preorder-fields" class="hidden grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label class="block text-[11px] font-bold font-prompt text-amber-800 mb-1">วันกำหนดปล่อยส่งมอบ (Release Date)</label>
+                    <input type="date" id="upload-release-date" class="w-full text-xs p-2 rounded-lg border border-amber-300 focus:outline-none">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold font-prompt text-amber-800 mb-1">หมายเหตุ Pre-Order</label>
+                    <input type="text" placeholder="รับของแถมไฟล์พรีเมียมในวันเปิดตัว" class="w-full text-xs p-2 rounded-lg border border-amber-300 focus:outline-none">
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end pt-2">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-prompt text-xs font-bold px-6 py-2.5 rounded-lg transition shadow-md shadow-indigo-200 flex items-center">
+                  <i class="fa-solid fa-paper-plane mr-2"></i> ส่งอนุมัติและวางจำหน่าย
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Writer's Book Catalog Table -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-lg font-bold font-prompt text-slate-900 mb-4">รายการหนังสือของคุณ</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 font-prompt">
+                  <tr>
+                    <th class="p-3 rounded-l-lg">ชื่อหนังสือ</th>
+                    <th class="p-3">หมวดหมู่</th>
+                    <th class="p-3">ราคา</th>
+                    <th class="p-3">ประเภท</th>
+                    <th class="p-3">ยอดขาย</th>
+                    <th class="p-3 rounded-r-lg">สถานะอนุมัติ</th>
+                  </tr>
+                </thead>
+                <tbody id="writer-books-tbody" class="divide-y divide-slate-100">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right 1 Col: Payout Request & Royalty Split -->
+        <div class="space-y-6">
+          
+          <!-- Payout Request Form -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="border-b border-slate-100 pb-3 mb-4">
+              <h3 class="text-md font-bold font-prompt text-slate-900 flex items-center">
+                <i class="fa-solid fa-money-bill-transfer text-emerald-600 mr-2"></i> ยื่นขอถอนเงินส่วนแบ่ง (Payout Request)
+              </h3>
+              <p class="text-[11px] text-slate-500">ระบบจะคำนวณส่วนแบ่ง 70% และส่งคำร้องไปยัง Shop Owner</p>
+            </div>
+
+            <form id="payout-form" onsubmit="handlePayoutRequest(event)" class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">จำนวนเงินที่ต้องการถอน (บาท)</label>
+                <input type="number" id="payout-amount" min="100" step="1" required placeholder="ขั้นต่ำ 100 บาท" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">ธนาคารรับเงิน</label>
+                <select id="payout-bank" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none">
+                  <option>ธนาคารกสิกรไทย (KBANK)</option>
+                  <option>ธนาคารไทยพาณิชย์ (SCB)</option>
+                  <option>ธนาคารกรุงเทพ (BBL)</option>
+                  <option>PromptPay (พร้อมเพย์)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold font-prompt text-slate-700 mb-1">เลขที่บัญชี / หมายเลขพร้อมเพย์</label>
+                <input type="text" id="payout-account-no" required placeholder="xxx-x-xxxxx-x" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none">
+              </div>
+
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-prompt text-xs font-bold py-2.5 rounded-lg transition shadow-md shadow-emerald-100">
+                ยื่นคำร้องขอถอนเงิน
+              </button>
+            </form>
+          </div>
+
+          <!-- Payout History Log -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="text-xs font-bold font-prompt text-slate-900 mb-3">ประวัติการยื่นถอนเงิน</h4>
+            <div id="payout-history-list" class="space-y-2 text-xs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ROLE 3: SHOP OWNER / ADMIN VIEW -->
+    <div id="view-admin" class="hidden space-y-6">
+      
+      <!-- Admin Summary Header -->
+      <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <span class="bg-indigo-500/30 text-indigo-300 text-xs px-3 py-1 rounded-full border border-indigo-400/30">Shop Owner Control Panel</span>
+          <h2 class="text-2xl font-bold font-prompt mt-2">ผู้ดูแลระบบและเจ้าของร้าน (Back-office Management)</h2>
+          <p class="text-xs text-slate-400 mt-1">อนุมัติหนังสือใหม่, ตรวจสอบการถอนเงินนักเขียน, และดูสถิติรายได้ส่วนแบ่งแพลตฟอร์ม (30%)</p>
+        </div>
+        <div class="flex space-x-3 text-center">
+          <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 min-w-[110px]">
+            <div class="text-[10px] text-slate-400 font-prompt">รายได้แพลตฟอร์ม</div>
+            <div id="admin-stat-platform-fee" class="text-lg font-bold font-prompt text-emerald-400">฿0.00</div>
+          </div>
+          <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 min-w-[110px]">
+            <div class="text-[10px] text-slate-400 font-prompt">คำร้องถอนเงินค้างอนุมัติ</div>
+            <div id="admin-stat-pending-payouts" class="text-lg font-bold font-prompt text-amber-400">0 รายการ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Approval Queues -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Queue 1: Pending E-Book Approval -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-md font-bold font-prompt text-slate-900 flex items-center">
+              <i class="fa-solid fa-clipboard-check text-indigo-600 mr-2"></i> หนังสือรออนุมัติวางจำหน่าย
+            </h3>
+            <span id="pending-book-badge" class="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold">0</span>
+          </div>
+
+          <div id="admin-pending-books-list" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Queue 2: Pending Payout Requests Approval -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-md font-bold font-prompt text-slate-900 flex items-center">
+              <i class="fa-solid fa-file-invoice-dollar text-emerald-600 mr-2"></i> คำร้องถอนเงินส่วนแบ่งรออนุมัติ
+            </h3>
+            <span id="pending-payout-badge" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">0</span>
+          </div>
+
+          <div id="admin-pending-payouts-list" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL 1: DRM PROTECTED E-BOOK READER / PREVIEW (FR-03, FR-04, FR-05, FR-06) -->
+  <div id="reader-modal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative border border-slate-700">
+      
+      <!-- Reader Header Bar -->
+      <div class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+          <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">DRM Protected Reader</span>
+          <h3 id="reader-book-title" class="text-sm font-bold font-prompt truncate max-w-xs sm:max-w-md">ชื่อหนังสือ</h3>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span id="reader-mode-badge" class="text-xs text-amber-400 font-medium">โหมดทดลองอ่านฟรี (Preview)</span>
+          <button onclick="closeReaderModal()" class="text-slate-400 hover:text-white p-1 transition">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- DRM Protection Warning Bar -->
+      <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs text-amber-900 no-select">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-lock text-amber-600"></i>
+          <span><b>ระบบความปลอดภัย DRM:</b> ปิดกั้นการคัดลอกข้อความ (Disable Copy/Paste) และห้ามดาวน์โหลดไฟล์ต้นฉบับ</span>
+        </div>
+        <div class="text-[10px] bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded font-mono">FR-04, FR-05, FR-06</div>
+      </div>
+
+      <!-- Book Reader Content Area with Dynamic Watermark Overlay -->
+      <div class="flex-grow bg-slate-200 p-4 sm:p-8 overflow-y-auto relative flex justify-center no-select" oncopy="preventCopy(event)">
+        
+        <!-- Simulated E-Book Page Paper -->
+        <div class="w-full max-w-2xl bg-amber-50/40 border border-slate-300 shadow-lg rounded-lg p-8 sm:p-12 relative overflow-hidden min-h-[500px]">
+          
+          <!-- Dynamic Watermark (FR-06) Overlay -->
+          <div class="absolute inset-0 watermark-overlay pointer-events-none flex items-center justify-center opacity-30 transform -rotate-12">
+            <div id="reader-watermark-text" class="text-xs font-mono font-bold text-slate-700 tracking-widest text-center">
+              WATERMARK: CUSTOMER_READ_ACCESS<br>USER_ID: CU-884920<br>STRICTLY CONFIDENTIAL
+            </div>
+          </div>
+
+          <!-- Simulated Page Text -->
+          <div class="relative z-10 text-slate-800 space-y-4 text-sm leading-relaxed font-serif">
+            <div class="text-center border-b border-slate-300 pb-4 mb-6">
+              <h1 id="reader-page-heading" class="text-2xl font-bold font-prompt text-slate-900">บทที่ 1: การสืบทอดคุณลักษณะและ Candidate Classes</h1>
+              <p class="text-xs text-slate-500 font-sans mt-1">หน้า <span id="reader-current-page">1</span> จาก <span id="reader-max-page">5</span> หน้า</p>
+            </div>
+
+            <p class="indent-6">ในการวิเคราะห์เชิงวัตถุ (Object-Oriented Analysis and Design: OOAD) คลาสหลักในระบบร้านขายหนังสืออิเล็กทรอนิกส์ถูกออกแบบขึ้นโดยยึดตามหลักความรับผิดชอบเดี่ยว (Single Responsibility Principle) คลาส <b>User</b> ทำหน้าที่เป็น Superclass และถูกสืบทอดคุณลักษณะ (Generalization) ไปยัง <b>Customer</b>, <b>Writer</b> และ <b>ShopOwner</b></p>
+            
+            <p class="indent-6">นอกจากนี้ วัตถุประเภท <b>EBook</b> ยังมีความสัมพันธ์แบบ Composition ร่วมกับ <b>DRMProtection</b> เพื่อควบคุมกลไกการแสดงผลเฉพาะบนระบบ E-Book Reader ป้องกันการดาวน์โหลดไฟล์ PDF หรือ EPUB ออกนอกระบบโดยตรง</p>
+
+            <div class="my-6 p-4 bg-white/80 rounded-lg border border-slate-200 text-xs font-sans">
+              <b class="text-indigo-700">คำเตือนระบบความปลอดภัย:</b> หน้าหนังสือนี้ได้รับการคุ้มครองสิทธิ์ หากผู้ใช้พยายามบันทึกภาพหน้าจอหรือคัดลอกข้อความ ลายน้ำประจำตัวจะปรากฏอย่างชัดเจนในไฟล์หลักฐาน
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Reader Footer Page Controls -->
+      <div class="bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center">
+        <button onclick="changeReaderPage(-1)" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition font-prompt">
+          <i class="fa-solid fa-chevron-left mr-1"></i> หน้าก่อนหน้า
+        </button>
+
+        <span class="text-xs font-prompt text-slate-600">
+          หน้า <span id="reader-page-num" class="font-bold text-indigo-600">1</span> / <span id="reader-total-pages">5</span>
+        </span>
+
+        <button onclick="changeReaderPage(1)" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition font-prompt">
+          หน้าถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL 2: SHOPPING CART & PROMPTPAY CHECKOUT (FR-09, FR-10, FR-11, FR-12) -->
+  <div id="cart-modal" class="fixed inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+      
+      <!-- Cart Header -->
+      <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+        <h3 class="text-md font-bold font-prompt flex items-center">
+          <i class="fa-solid fa-cart-shopping text-indigo-400 mr-2"></i> ตะกร้าสินค้าและการชำระเงิน (Cart & Order)
+        </h3>
+        <button onclick="toggleCartModal(false)" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Cart Content Body -->
+      <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+        
+        <!-- Cart Items List -->
+        <div id="cart-items-container" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Coupon Code Section (FR-09, FR-10) -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+          <label class="block text-xs font-bold font-prompt text-slate-700">ใช้คูปองส่วนลด / Promotion Coupon (FR-09)</label>
+          <div class="flex space-x-2">
+            <input type="text" id="coupon-input" placeholder="ใส่รหัสคูปอง เช่น EBOOK2026" class="flex-grow text-xs p-2 rounded-lg border border-slate-300 uppercase focus:outline-none">
+            <button onclick="applyCoupon()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-prompt text-xs px-4 py-2 rounded-lg font-medium transition">
+              นำไปใช้
+            </button>
+          </div>
+          <div id="coupon-message" class="text-[11px] hidden"></div>
+          <div class="text-[10px] text-slate-400 font-sans">คูปองตัวอย่างที่ใช้งานได้: <span class="font-mono text-indigo-600 font-bold">EBOOK2026</span> (ลด 20%), <span class="font-mono text-indigo-600 font-bold">WELCOME50</span> (ลด 50 บาท)</div>
+        </div>
+
+        <!-- Order Summary & Calculations -->
+        <div class="space-y-2 text-xs border-t border-slate-100 pt-3">
+          <div class="flex justify-between text-slate-600">
+            <span>ยอดยอดรวมสินค้า</span>
+            <span id="cart-subtotal" class="font-mono font-medium">฿0.00</span>
+          </div>
+          <div class="flex justify-between text-emerald-600">
+            <span>ส่วนลดคูปอง</span>
+            <span id="cart-discount" class="font-mono font-medium">-฿0.00</span>
+          </div>
+          <div class="flex justify-between text-base font-bold text-slate-900 border-t border-slate-200 pt-2 font-prompt">
+            <span>ยอดสุทธิที่ต้องชำระ</span>
+            <span id="cart-net-total" class="font-mono text-indigo-600">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- Simulated PromptPay QR Section (FR-12) -->
+        <div id="promptpay-section" class="bg-blue-50/60 p-4 rounded-xl border border-blue-200/60 text-center space-y-3">
+          <div class="flex items-center justify-center space-x-2 text-xs font-bold text-blue-900 font-prompt">
+            <i class="fa-solid fa-qrcode text-blue-600 text-base"></i>
+            <span>ชำระผ่าน PromptPay QR Code (Automated Verification)</span>
+          </div>
+
+          <!-- Mock Dynamic QR Image -->
+          <div class="w-36 h-36 bg-white mx-auto border-2 border-blue-300 rounded-lg p-2 flex items-center justify-center shadow-inner">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=PROMPTPAY_EBOOK_SIMULATION" alt="PromptPay QR Code" class="w-full h-full object-contain">
+          </div>
+
+          <div class="text-[11px] text-slate-500 font-prompt">
+            สแกนเพื่อชำระเงิน <b id="qr-amount-display" class="text-blue-700">฿0.00</b> (จำลองส่งสัญญาณยืนยันเรียลไทม์)
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Cart Action Footer -->
+      <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+        <button onclick="toggleCartModal(false)" class="text-xs text-slate-600 hover:text-slate-900 font-prompt">ยกเลิก</button>
+        <button onclick="processCheckout()" id="checkout-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-prompt text-xs font-bold px-6 py-2.5 rounded-lg transition shadow-md shadow-emerald-100 flex items-center">
+          <i class="fa-solid fa-circle-check mr-2"></i> ยืนยันชำระเงิน และรับเข้าตู้หนังสือ
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- SYSTEM STATE & LOGIC SCRIPT -->
+  <script>
+    // INITIAL SYSTEM DATA (MOCKING DATABASE STATE)
+    const state = {
+      currentRole: 'customer', // 'customer' | 'writer' | 'admin'
+      currentTab: 'store', // 'store' | 'bookshelf'
+      cart: [],
+      appliedCoupon: null,
+      purchasedBookIds: [1], // Pre-owned book ID for demo
+      books: [
+        {
+          id: 1,
+          title: "คู่มือ OOAD & Software Architecture",
+          author: "ดร. สมชาย พัฒนาเทคโนโลยี",
+          category: "เทคโนโลยี",
+          price: 290,
+          cover: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=300&q=80",
+          previewPages: 8,
+          isPreOrder: false,
+          releaseDate: null,
+          status: "approved",
+          salesCount: 142
+        },
+        {
+          id: 2,
+          title: "การออกแบบระบบ Microservices ด้วย Go",
+          author: "คุณอนันต์ สกิลอัป",
+          category: "เทคโนโลยี",
+          price: 350,
+          cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80",
+          previewPages: 5,
+          isPreOrder: true,
+          releaseDate: "2026-11-01",
+          status: "approved",
+          salesCount: 89
+        },
+        {
+          id: 3,
+          title: "จิตวิทยาการจัดเงินส่วนบุคคลในปี 2026",
+          author: "โค้ชการเงิน ณเดชน์",
+          category: "การเงิน",
+          price: 220,
+          cover: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=300&q=80",
+          previewPages: 10,
+          isPreOrder: false,
+          releaseDate: null,
+          status: "approved",
+          salesCount: 230
+        },
+        {
+          id: 4,
+          title: "ปลุกพลังบวก พัฒนาศักยภาพไร้ขีดจำกัด",
+          author: "กานต์กวี สร้างแรงบันดาลใจ",
+          category: "พัฒนาตัวเอง",
+          price: 180,
+          cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=300&q=80",
+          previewPages: 6,
+          isPreOrder: false,
+          releaseDate: null,
+          status: "approved",
+          salesCount: 57
+        },
+        {
+          id: 5,
+          title: "มหากาพย์เวทมนตร์แห่งอาณาจักรดิจิทัล",
+          author: "นามปากกา: ไรเตอร์X",
+          category: "นิยาย",
+          price: 260,
+          cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=300&q=80",
+          previewPages: 12,
+          isPreOrder: true,
+          releaseDate: "2026-11-15",
+          status: "approved",
+          salesCount: 31
+        }
+      ],
+      payoutRequests: [
+        { id: 'PO-101', writer: 'ไรเตอร์X', amount: 3500, bank: 'KBANK', accountNo: '045-2-88123-1', status: 'approved', date: '2026-10-10' }
+      ],
+      coupons: {
+        'EBOOK2026': { type: 'percent', value: 0.20 },
+        'WELCOME50': { type: 'fixed', value: 50 }
+      },
+      currentCategoryFilter: 'all',
+      searchQuery: ''
+    };
+
+    // INIT APP
+    document.addEventListener('DOMContentLoaded', () => {
+      renderApp();
+    });
+
+    // ROLE SWITCHER
+    function switchRole(role) {
+      state.currentRole = role;
+      
+      // Update Role Buttons Styling
+      ['customer', 'writer', 'admin'].forEach(r => {
+        const btn = document.getElementById(`role-${r}-btn`);
+        if (r === role) {
+          btn.className = "px-3 py-1 text-xs font-medium rounded text-white bg-indigo-600 transition shadow-sm";
+        } else {
+          btn.className = "px-3 py-1 text-xs font-medium rounded text-slate-300 hover:text-white transition";
+        }
+      });
+
+      // Show/Hide Main Views
+      document.getElementById('view-customer').classList.toggle('hidden', role !== 'customer');
+      document.getElementById('view-writer').classList.toggle('hidden', role !== 'writer');
+      document.getElementById('view-admin').classList.toggle('hidden', role !== 'admin');
+
+      // Header User Avatar Update
+      const avatar = document.getElementById('user-avatar');
+      const name = document.getElementById('user-name-display');
+      const roleText = document.getElementById('user-role-display');
+
+      if (role === 'customer') {
+        avatar.className = "w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs";
+        avatar.innerText = "CU";
+        name.innerText = "ลูกค้าทั่วไป";
+        roleText.innerText = "Customer";
+      } else if (role === 'writer') {
+        avatar.className = "w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs";
+        avatar.innerText = "WR";
+        name.innerText = "นักเขียน (Writer)";
+        roleText.innerText = "Content Creator";
+      } else {
+        avatar.className = "w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs";
+        avatar.innerText = "SO";
+        name.innerText = "ผู้ดูแลระบบ";
+        roleText.innerText = "Shop Owner";
+      }
+
+      // Hide Search/Cart elements on Admin
+      document.getElementById('nav-cart-btn').style.display = (role === 'customer') ? 'block' : 'none';
+      document.getElementById('nav-bookshelf-btn').style.display = (role === 'customer') ? 'block' : 'none';
+
+      renderApp();
+      showToast(`สลับมุมมองเป็น ${name.innerText}`, 'info');
+    }
+
+    // TAB SWITCHER
+    function switchTab(tab) {
+      state.currentTab = tab;
+      document.getElementById('customer-tab-store').classList.toggle('hidden', tab !== 'store');
+      document.getElementById('customer-tab-bookshelf').classList.toggle('hidden', tab !== 'bookshelf');
+      renderApp();
+    }
+
+    // RENDER CONTROLLER
+    function renderApp() {
+      updateNavLinks();
+      updateCartBadge();
+      updateBookshelfBadge();
+
+      if (state.currentRole === 'customer') {
+        if (state.currentTab === 'store') renderBookGrid();
+        if (state.currentTab === 'bookshelf') renderBookshelfGrid();
+      } else if (state.currentRole === 'writer') {
+        renderWriterDashboard();
+      } else if (state.currentRole === 'admin') {
+        renderAdminDashboard();
+      }
+    }
+
+    // NAV LINKS RENDERER
+    function updateNavLinks() {
+      const container = document.getElementById('nav-links');
+      if (state.currentRole === 'customer') {
+        container.innerHTML = `
+          <button onclick="switchTab('store')" class="${state.currentTab === 'store' ? 'text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1' : 'text-slate-600 hover:text-indigo-600'} font-prompt transition">หน้าร้าน E-Book</button>
+          <button onclick="switchTab('bookshelf')" class="${state.currentTab === 'bookshelf' ? 'text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1' : 'text-slate-600 hover:text-indigo-600'} font-prompt transition">ตู้หนังสือของฉัน</button>
+        `;
+      } else if (state.currentRole === 'writer') {
+        container.innerHTML = `
+          <span class="text-emerald-600 font-bold font-prompt border-b-2 border-emerald-600 pb-1"><i class="fa-solid fa-chart-line mr-1"></i> แดชบอร์ดสรุปยอดขาย & อัปโหลด</span>
+        `;
+      } else {
+        container.innerHTML = `
+          <span class="text-amber-600 font-bold font-prompt border-b-2 border-amber-600 pb-1"><i class="fa-solid fa-list-check mr-1"></i> รายการอนุมัติหลังบ้าน</span>
+        `;
+      }
+    }
+
+    // RENDER STORE BOOK GRID
+    function renderBookGrid() {
+      const grid = document.getElementById('book-grid');
+      let filtered = state.books.filter(b => b.status === 'approved');
+
+      if (state.currentCategoryFilter === 'preorder') {
+        filtered = filtered.filter(b => b.isPreOrder);
+      } else if (state.currentCategoryFilter !== 'all') {
+        filtered = filtered.filter(b => b.category === state.currentCategoryFilter);
+      }
+
+      if (state.searchQuery) {
+        const q = state.searchQuery.toLowerCase();
+        filtered = filtered.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+      }
+
+      document.getElementById('book-count').innerText = filtered.length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-prompt">ไม่พบหนังสือที่ตรงกับเงื่อนไขการค้นหา</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(book => {
+        const isOwned = state.purchasedBookIds.includes(book.id);
+        const inCart = state.cart.some(c => c.id === book.id);
+
+        return `
+          <div class="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+            <div class="relative aspect-[3/4] bg-slate-100 overflow-hidden">
+              <img src="${book.cover}" alt="${book.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+              
+              <!-- Badges -->
+              <div class="absolute top-2 left-2 flex flex-col gap-1">
+                ${book.isPreOrder ? `<span class="bg-amber-500 text-slate-950 font-prompt text-[10px] font-bold px-2 py-0.5 rounded shadow"><i class="fa-solid fa-clock mr-1"></i> Pre-Order</span>` : ''}
+                ${isOwned ? `<span class="bg-emerald-600 text-white font-prompt text-[10px] font-bold px-2 py-0.5 rounded shadow"><i class="fa-solid fa-circle-check mr-1"></i> เป็นเจ้าของแล้ว</span>` : ''}
+              </div>
+
+              <!-- Preview Button Overlay (FR-03) -->
+              <button onclick="openReaderModal(${book.id}, true)" class="absolute bottom-2 right-2 bg-slate-900/80 hover:bg-indigo-600 text-white text-[11px] font-prompt px-2.5 py-1 rounded-lg backdrop-blur-sm transition shadow">
+                <i class="fa-solid fa-eye mr-1"></i> ทดลองอ่าน (${book.previewPages} หน้า)
+              </button>
+            </div>
+
+            <div class="p-3.5 flex-grow flex flex-col justify-between space-y-2">
+              <div>
+                <span class="text-[10px] font-bold text-indigo-600 font-prompt block">${book.category}</span>
+                <h3 class="font-prompt font-bold text-xs text-slate-900 line-clamp-2 leading-snug" title="${book.title}">${book.title}</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5 truncate">${book.author}</p>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div class="font-mono font-bold text-sm text-slate-900">฿${book.price}</div>
+                
+                ${isOwned ? `
+                  <button onclick="openReaderModal(${book.id}, false)" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-bold font-prompt px-3 py-1.5 rounded-lg border border-emerald-200 transition">
+                    อ่านหนังสือ
+                  </button>
+                ` : `
+                  <button onclick="addToCart(${book.id})" ${inCart ? 'disabled' : ''} class="${inCart ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} text-[11px] font-bold font-prompt px-3 py-1.5 rounded-lg transition shadow-sm">
+                    ${inCart ? 'อยู่ในตะกร้า' : '<i class="fa-solid fa-cart-plus mr-1"></i> ใส่ตะกร้า'}
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // RENDER BOOKSHELF
+    function renderBookshelfGrid() {
+      const grid = document.getElementById('bookshelf-grid');
+      const owned = state.books.filter(b => state.purchasedBookIds.includes(b.id));
+
+      if (owned.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-prompt">ตู้หนังสือของคุณยังว่างเปล่า สั่งซื้อหนังสือเพื่อเริ่มอ่านได้ทันที</div>`;
+        return;
+      }
+
+      grid.innerHTML = owned.map(book => `
+        <div class="bg-slate-50 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="relative aspect-[3/4] bg-slate-200">
+            <img src="${book.cover}" class="w-full h-full object-cover">
+            ${book.isPreOrder ? `
+              <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white p-3 text-center space-y-1">
+                <i class="fa-solid fa-lock text-amber-400 text-2xl mb-1"></i>
+                <span class="text-xs font-bold font-prompt text-amber-300">สั่งจอง Pre-Order สำเร็จ</span>
+                <span class="text-[10px] text-slate-300">เปิดอ่านได้วันเปิดตัว: ${book.releaseDate}</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="p-3 space-y-2">
+            <h4 class="font-prompt font-bold text-xs text-slate-900 line-clamp-1">${book.title}</h4>
+            <button onclick="openReaderModal(${book.id}, false)" ${book.isPreOrder ? 'disabled' : ''} class="${book.isPreOrder ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} w-full text-xs font-bold font-prompt py-2 rounded-lg transition shadow-sm">
+              <i class="fa-solid fa-book-open mr-1"></i> ${book.isPreOrder ? 'รอดำเนินการปล่อยสิทธิ์' : 'เปิดอ่าน E-Book'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // CATEGORY FILTER
+    function filterCategory(cat) {
+      state.currentCategoryFilter = cat;
+      document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+        btn.className = "cat-filter-btn bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium font-prompt transition";
+      });
+      renderBookGrid();
+    }
+
+    function handleSearch() {
+      state.searchQuery = document.getElementById('search-input').value;
+      renderBookGrid();
+    }
+
+    // CART OPERATIONS
+    function addToCart(bookId) {
+      const book = state.books.find(b => b.id === bookId);
+      if (book && !state.cart.some(c => c.id === bookId)) {
+        state.cart.push(book);
+        updateCartBadge();
+        showToast(`เพิ่ม "${book.title}" ลงในตะกร้าแล้ว`, 'success');
+        renderBookGrid();
+      }
+    }
+
+    function removeFromCart(bookId) {
+      state.cart = state.cart.filter(c => c.id !== bookId);
+      renderCartModal();
+      updateCartBadge();
+      renderBookGrid();
+    }
+
+    function updateCartBadge() {
+      const badge = document.getElementById('cart-count-badge');
+      badge.innerText = state.cart.length;
+      badge.style.display = state.cart.length > 0 ? 'flex' : 'none';
+    }
+
+    function updateBookshelfBadge() {
+      const badge = document.getElementById('bookshelf-count-badge');
+      badge.innerText = state.purchasedBookIds.length;
+      badge.style.display = state.purchasedBookIds.length > 0 ? 'flex' : 'none';
+    }
+
+    function toggleCartModal(open) {
+      const modal = document.getElementById('cart-modal');
+      modal.classList.toggle('hidden', !open);
+      if (open) renderCartModal();
+    }
+
+    function renderCartModal() {
+      const container = document.getElementById('cart-items-container');
+      if (state.cart.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-400 font-prompt text-xs">ตะกร้าสินค้าว่างเปล่า</div>`;
+        document.getElementById('cart-subtotal').innerText = '฿0.00';
+        document.getElementById('cart-discount').innerText = '-฿0.00';
+        document.getElementById('cart-net-total').innerText = '฿0.00';
+        document.getElementById('qr-amount-display').innerText = '฿0.00';
+        document.getElementById('checkout-btn').disabled = true;
+        document.getElementById('checkout-btn').classList.add('opacity-50');
+        return;
+      }
+
+      document.getElementById('checkout-btn').disabled = false;
+      document.getElementById('checkout-btn').classList.remove('opacity-50');
+
+      container.innerHTML = state.cart.map(item => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div class="flex items-center space-x-3">
+            <img src="${item.cover}" class="w-10 h-14 object-cover rounded shadow-xs">
+            <div>
+              <h4 class="font-prompt font-bold text-xs text-slate-900 line-clamp-1">${item.title}</h4>
+              <span class="text-[10px] text-indigo-600 font-medium">${item.category} ${item.isPreOrder ? '(Pre-Order)' : ''}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="font-mono font-bold text-xs text-slate-900">฿${item.price}</span>
+            <button onclick="removeFromCart(${item.id})" class="text-slate-400 hover:text-red-500 text-xs">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Calculations
+      const subtotal = state.cart.reduce((sum, item) => sum + item.price, 0);
+      let discount = 0;
+
+      if (state.appliedCoupon) {
+        const coupon = state.coupons[state.appliedCoupon];
+        if (coupon.type === 'percent') discount = subtotal * coupon.value;
+        if (coupon.type === 'fixed') discount = coupon.value;
+      }
+
+      const netTotal = Math.max(0, subtotal - discount);
+
+      document.getElementById('cart-subtotal').innerText = `฿${subtotal.toFixed(2)}`;
+      document.getElementById('cart-discount').innerText = `-฿${discount.toFixed(2)}`;
+      document.getElementById('cart-net-total').innerText = `฿${netTotal.toFixed(2)}`;
+      document.getElementById('qr-amount-display').innerText = `฿${netTotal.toFixed(2)}`;
+    }
+
+    function applyCoupon() {
+      const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+      const msg = document.getElementById('coupon-message');
+
+      if (state.coupons[code]) {
+        state.appliedCoupon = code;
+        msg.className = "text-[11px] text-emerald-600 font-bold font-prompt block";
+        msg.innerText = `ใช้คูปอง "${code}" สำเร็จ!`;
+        renderCartModal();
+      } else {
+        msg.className = "text-[11px] text-red-500 font-bold font-prompt block";
+        msg.innerText = "รหัสคูปองไม่ถูกต้องหรือหมดอายุ";
+      }
+    }
+
+    function processCheckout() {
+      if (state.cart.length === 0) return;
+
+      // Add purchased books
+      state.cart.forEach(book => {
+        if (!state.purchasedBookIds.includes(book.id)) {
+          state.purchasedBookIds.push(book.id);
+          book.salesCount += 1;
+        }
+      });
+
+      state.cart = [];
+      state.appliedCoupon = null;
+      toggleCartModal(false);
+      showToast("ชำระเงินผ่าน PromptPay สำเร็จ! ส่งมอบหนังสือเข้าตู้แล้ว", "success");
+      switchTab('bookshelf');
+    }
+
+    // READER MODAL & DRM SIMULATION
+    function openReaderModal(bookId, isPreview) {
+      const book = state.books.find(b => b.id === bookId);
+      if (!book) return;
+
+      document.getElementById('reader-book-title').innerText = book.title;
+      document.getElementById('reader-mode-badge').innerText = isPreview ? `โหมดทดลองอ่านฟรี (${book.previewPages} หน้า)` : "ฉบับสมบูรณ์ (Full Access)";
+      document.getElementById('reader-total-pages').innerText = isPreview ? book.previewPages : 120;
+      document.getElementById('reader-max-page').innerText = isPreview ? book.previewPages : 120;
+      document.getElementById('reader-page-num').innerText = 1;
+      document.getElementById('reader-current-page').innerText = 1;
+
+      // Dynamic Watermark setup (FR-06)
+      document.getElementById('reader-watermark-text').innerHTML = `
+        DYNAMIC WATERMARK<br>
+        REGISTERED USER: CU-USER@EBOOKSTORE.COM<br>
+        DRM PROTECTED ID: ${book.id}-38291
+      `;
+
+      document.getElementById('reader-modal').classList.remove('hidden');
+    }
+
+    function closeReaderModal() {
+      document.getElementById('reader-modal').classList.add('hidden');
+    }
+
+    function changeReaderPage(delta) {
+      const current = parseInt(document.getElementById('reader-page-num').innerText);
+      const total = parseInt(document.getElementById('reader-total-pages').innerText);
+      const next = current + delta;
+
+      if (next >= 1 && next <= total) {
+        document.getElementById('reader-page-num').innerText = next;
+        document.getElementById('reader-current-page').innerText = next;
+      }
+    }
+
+    function preventCopy(e) {
+      e.preventDefault();
+      showToast("ปิดกั้นการคัดลอกข้อความ (Disable Copy/Paste DRM Protection)", "error");
+    }
+
+    // WRITER DASHBOARD LOGIC
+    function togglePreOrderFields(checked) {
+      document.getElementById('preorder-fields').classList.toggle('hidden', !checked);
+      document.getElementById('preorder-fields').classList.toggle('grid', checked);
+    }
+
+    function handleUploadBook(e) {
+      e.preventDefault();
+      const title = document.getElementById('upload-title').value;
+      const category = document.getElementById('upload-category').value;
+      const price = parseFloat(document.getElementById('upload-price').value);
+      const previewPages = parseInt(document.getElementById('upload-preview-pages').value);
+      const isPreOrder = document.getElementById('upload-is-preorder').checked;
+      const releaseDate = isPreOrder ? document.getElementById('upload-release-date').value : null;
+
+      const newBook = {
+        id: Date.now(),
+        title,
+        category,
+        price,
+        previewPages,
+        isPreOrder,
+        releaseDate,
+        author: "นักเขียน (คุณ)",
+        cover: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=300&q=80",
+        status: "pending", // Waiting for Admin approval
+        salesCount: 0
+      };
+
+      state.books.push(newBook);
+      showToast("ส่งหนังสือเพื่อรอเจ้าของร้านอนุมัติเรียบร้อยแล้ว", "success");
+      document.getElementById('upload-book-form').reset();
+      togglePreOrderFields(false);
+      renderWriterDashboard();
+    }
+
+    function renderWriterDashboard() {
+      const myBooks = state.books.filter(b => b.author === "นักเขียน (คุณ)");
+      document.getElementById('writer-stat-books').innerText = `${myBooks.length} เล่ม`;
+
+      const totalSalesCount = myBooks.reduce((sum, b) => sum + b.salesCount, 0);
+      document.getElementById('writer-stat-sales').innerText = `${totalSalesCount} เล่ม`;
+
+      const totalRevenue = myBooks.reduce((sum, b) => sum + (b.salesCount * b.price), 0);
+      const royaltyShare = totalRevenue * 0.70; // 70% writer share
+      document.getElementById('writer-stat-royalty').innerText = `฿${royaltyShare.toFixed(2)}`;
+
+      const paidOut = state.payoutRequests.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0);
+      const withdrawable = Math.max(0, royaltyShare - paidOut);
+      document.getElementById('writer-stat-withdrawable').innerText = `฿${withdrawable.toFixed(2)}`;
+
+      // Books table
+      const tbody = document.getElementById('writer-books-tbody');
+      if (myBooks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีรายการหนังสือที่อัปโหลด</td></tr>`;
+      } else {
+        tbody.innerHTML = myBooks.map(b => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-bold text-slate-900">${b.title}</td>
+            <td class="p-3">${b.category}</td>
+            <td class="p-3 font-mono">฿${b.price}</td>
+            <td class="p-3">${b.isPreOrder ? '<span class="text-amber-600 font-bold">Pre-Order</span>' : 'ปกติ'}</td>
+            <td class="p-3 font-bold text-indigo-600">${b.salesCount}</td>
+            <td class="p-3">
+              ${b.status === 'approved' ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold">อนุมัติแล้ว</span>' : '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold">รอการอนุมัติ</span>'}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Payout log
+      const log = document.getElementById('payout-history-list');
+      log.innerHTML = state.payoutRequests.map(p => `
+        <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center">
+          <div>
+            <div class="font-bold text-slate-900">฿${p.amount.toFixed(2)} (${p.bank})</div>
+            <div class="text-[10px] text-slate-400">${p.date} • ${p.accountNo}</div>
+          </div>
+          <span class="${p.status === 'approved' ? 'text-emerald-600' : 'text-amber-600'} font-bold font-prompt text-[11px]">
+            ${p.status === 'approved' ? 'อนุมัติเรียบร้อย' : 'รออนุมัติ'}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    function handlePayoutRequest(e) {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('payout-amount').value);
+      const bank = document.getElementById('payout-bank').value;
+      const accountNo = document.getElementById('payout-account-no').value;
+
+      const req = {
+        id: `PO-${Date.now().toString().slice(-4)}`,
+        writer: 'นักเขียน (คุณ)',
+        amount,
+        bank,
+        accountNo,
+        status: 'pending',
+        date: new Date().toISOString().split('T')[0]
+      };
+
+      state.payoutRequests.push(req);
+      showToast("ยื่นคำร้องขอถอนเงินเรียบร้อยแล้ว", "success");
+      document.getElementById('payout-form').reset();
+      renderWriterDashboard();
+    }
+
+    // ADMIN DASHBOARD LOGIC
+    function renderAdminDashboard() {
+      // Calculate platform 30% share
+      const totalRev = state.books.reduce((sum, b) => sum + (b.salesCount * b.price), 0);
+      const platformFee = totalRev * 0.30;
+      document.getElementById('admin-stat-platform-fee').innerText = `฿${platformFee.toFixed(2)}`;
+
+      const pendingPayouts = state.payoutRequests.filter(p => p.status === 'pending');
+      document.getElementById('admin-stat-pending-payouts').innerText = `${pendingPayouts.length} รายการ`;
+      document.getElementById('pending-payout-badge').innerText = pendingPayouts.length;
+
+      const pendingBooks = state.books.filter(b => b.status === 'pending');
+      document.getElementById('pending-book-badge').innerText = pendingBooks.length;
+
+      // Pending Books queue
+      const bookQueue = document.getElementById('admin-pending-books-list');
+      if (pendingBooks.length === 0) {
+        bookQueue.innerHTML = `<div class="text-center py-6 text-slate-400 font-prompt text-xs">ไม่มีหนังสือรออนุมัติ</div>`;
+      } else {
+        bookQueue.innerHTML = pendingBooks.map(b => `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-xs text-slate-900 font-prompt">${b.title}</h4>
+              <p class="text-[10px] text-slate-500">โดย: ${b.author} | ราคา: ฿${b.price}</p>
+            </div>
+            <button onclick="approveBook(${b.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-prompt text-xs font-bold px-3 py-1.5 rounded-lg transition">
+              อนุมัติ
+            </button>
+          </div>
+        `).join('');
+      }
+
+      // Pending Payouts queue
+      const payoutQueue = document.getElementById('admin-pending-payouts-list');
+      if (pendingPayouts.length === 0) {
+        payoutQueue.innerHTML = `<div class="text-center py-6 text-slate-400 font-prompt text-xs">ไม่มีคำร้องถอนเงินรออนุมัติ</div>`;
+      } else {
+        payoutQueue.innerHTML = pendingPayouts.map(p => `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-xs text-slate-900 font-prompt">฿${p.amount.toFixed(2)} (${p.writer})</h4>
+              <p class="text-[10px] text-slate-500">${p.bank} - ${p.accountNo}</p>
+            </div>
+            <button onclick="approvePayout('${p.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-prompt text-xs font-bold px-3 py-1.5 rounded-lg transition">
+              อนุมัติโอนเงิน
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function approveBook(bookId) {
+      const book = state.books.find(b => b.id === bookId);
+      if (book) {
+        book.status = 'approved';
+        showToast(`อนุมัติหนังสือ "${book.title}" แล้ว`, 'success');
+        renderAdminDashboard();
+      }
+    }
+
+    function approvePayout(payoutId) {
+      const req = state.payoutRequests.find(p => p.id === payoutId);
+      if (req) {
+        req.status = 'approved';
+        showToast(`อนุมัติคำร้องถอนเงิน ฿${req.amount} แล้ว`, 'success');
+        renderAdminDashboard();
+      }
+    }
+
+    // TOAST NOTIFICATIONS
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bg = 'bg-slate-900 text-white';
+      if (type === 'success') bg = 'bg-emerald-600 text-white';
+      if (type === 'error') bg = 'bg-red-600 text-white';
+
+      toast.className = `${bg} text-xs font-prompt px-4 py-2.5 rounded-xl shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${message}</span>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
